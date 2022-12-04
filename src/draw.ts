@@ -2,7 +2,7 @@ import { Settings } from "./settings";
 import {
   drawSprite,
   getLoadedSpriteImage,
-  getTankCoordinateKey,
+  getPlayerTankCoordinateKey,
 } from "./sprites";
 import { GameState, TankState } from "./state";
 
@@ -14,17 +14,13 @@ function drawTank(
   settings: Settings
 ) {
   ctx.beginPath();
-  // ctx.rect(tank.x, tank.y, settings.tankSize, settings.tankSize);
-  // ctx.fillStyle = "black";
-  // ctx.fill();
-  drawSprite(
-    ctx,
-    sprite,
-    getTankCoordinateKey("YELLOW", tank.direction, tank.frame),
-    tank.x,
-    tank.y,
-    settings.tankSize
+  const spriteKey = getPlayerTankCoordinateKey(
+    "primary",
+    "a",
+    tank.direction,
+    tank.frame
   );
+  drawSprite(ctx, sprite, spriteKey, tank.x, tank.y, settings.tankSize);
   ctx.closePath();
 }
 
