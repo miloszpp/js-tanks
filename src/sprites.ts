@@ -1,4 +1,5 @@
 import SpriteManifest from "../public/sprite.manifest.json";
+import SpriteImagePath from "../public/sprite.png";
 
 export function getLoadedSpriteImage() {
   return new Promise<HTMLImageElement>((resolve) => {
@@ -6,7 +7,7 @@ export function getLoadedSpriteImage() {
     image.onload = () => {
       resolve(image);
     };
-    image.src = "./sprite.png";
+    image.src = SpriteImagePath;
   });
 }
 
@@ -17,9 +18,12 @@ export const getPlayerTankCoordinateKey = (
   frame: 1 | 2
 ) => `tank.player.${mode}.${kind}.${orientation}.${frame}` as const;
 
+export const getBrickKey = (mode: 1 | 2) => `terrain.brick.${mode}` as const;
+
+const SpriteImage = await getLoadedSpriteImage();
+
 export const drawSprite = (
   ctx: CanvasRenderingContext2D,
-  image: HTMLImageElement,
   spriteKey: keyof typeof SpriteManifest,
   x: number,
   y: number,
@@ -29,7 +33,7 @@ export const drawSprite = (
     SpriteManifest[spriteKey].rect;
 
   ctx.drawImage(
-    image,
+    SpriteImage,
     spriteX,
     spriteY,
     spriteWidth,
