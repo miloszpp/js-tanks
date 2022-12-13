@@ -11,6 +11,7 @@ const EVENT_KEYS_MAPPING: Record<string, ControlKeys | undefined> = {
   ArrowUp: "up",
   Down: "down",
   ArrowDown: "down",
+  " ": "space",
 };
 
 export function setupControls() {

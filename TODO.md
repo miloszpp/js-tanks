@@ -1,0 +1,3 @@
+- bullets and wall destruction
+- sparse storage of the grid
+- wall colision

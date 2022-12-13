@@ -24,6 +24,8 @@ export const DEFAULT_SETTINGS = {
     "eeeeeebeeeeee",
     "eeeeeebeeeeee",
   ]),
+  bulletSpeed: 10,
+  bulletSize: 10,
 
   get tankSize() {
     return this.canvasSize / this.grid.length;

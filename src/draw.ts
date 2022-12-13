@@ -1,6 +1,6 @@
 import { Settings } from "./settings";
 import { drawSprite, getBrickKey, getPlayerTankCoordinateKey } from "./sprites";
-import { GameState, TankState } from "./state";
+import { BulletState, GameState, TankState } from "./state";
 
 function drawTank(
   ctx: CanvasRenderingContext2D,
@@ -41,6 +41,24 @@ function drawTerrain(ctx: CanvasRenderingContext2D, settings: Settings) {
   ctx.closePath();
 }
 
+function drawBullets(
+  ctx: CanvasRenderingContext2D,
+  bullets: BulletState[],
+  settings: Settings
+) {
+  ctx.beginPath();
+  for (let bullet of bullets) {
+    drawSprite(
+      ctx,
+      `bullet.${bullet.direction}` as const,
+      bullet.x,
+      bullet.y,
+      settings.bulletSize
+    );
+  }
+  ctx.closePath();
+}
+
 export function draw(
   ctx: CanvasRenderingContext2D,
   state: GameState,
@@ -51,6 +69,7 @@ export function draw(
 
   drawTank(ctx, state.myTank, settings);
   drawTerrain(ctx, settings);
+  drawBullets(ctx, state.bullets, settings);
 
   if (shouldContinue()) {
     requestAnimationFrame(() => draw(ctx, state, settings, shouldContinue));
