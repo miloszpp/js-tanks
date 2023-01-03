@@ -16,13 +16,47 @@ export interface BulletState {
   direction: Direction;
 }
 
+export type TerrainNode = {
+  type: "brick" | "concrete";
+  x: number;
+  y: number;
+  row: number;
+  col: number;
+};
+
+export interface TerrainState {
+  nodes: TerrainNode[];
+}
+
 export interface GameState {
   myTank: TankState;
   enemyTanks: TankState[];
   bullets: BulletState[];
+  terrain: TerrainState;
 }
 
-export const getInitialState = (): GameState => ({
+const generateNodesFromCoords = (
+  row: number,
+  col: number,
+  type: TerrainNode["type"],
+  { terrainSize }: Settings
+) => {
+  const nodes: TerrainNode[] = [];
+  for (let i = 0; i < 4; i++) {
+    for (let j = 0; j < 4; j++) {
+      nodes.push({
+        row: 4 * row + i,
+        col: 4 * col + j,
+        x: ((4 * row + i) * terrainSize) / 4,
+        y: ((4 * col + j) * terrainSize) / 4,
+        type,
+      });
+    }
+  }
+  return nodes;
+};
+
+export const getInitialState = (settings: Settings): GameState => ({
   myTank: {
     x: 0,
     y: 0,
@@ -31,7 +65,41 @@ export const getInitialState = (): GameState => ({
   },
   enemyTanks: [],
   bullets: [],
+  terrain: {
+    nodes: settings.grid
+      .flatMap((row, rowIdx) =>
+        row.flatMap((f, colIdx) =>
+          f === "e"
+            ? null
+            : generateNodesFromCoords(rowIdx, colIdx, "brick", settings)
+        )
+      )
+      .filter((f): f is TerrainNode => f !== null),
+  },
 });
+
+const isContainedByRect = (
+  x: number,
+  y: number,
+  rectX: number,
+  rectY: number,
+  rectWidth: number,
+  rectHeight: number
+) =>
+  x >= rectX && x <= rectX + rectWidth && y >= rectY && y <= rectY + rectHeight;
+
+function getCollidingNode(
+  x: number,
+  y: number,
+  terrain: TerrainState,
+  { terrainSize }: Settings
+) {
+  for (const node of terrain.nodes) {
+    if (isContainedByRect(x, y, node.x, node.y, terrainSize, terrainSize)) {
+      return node;
+    }
+  }
+}
 
 export function updateState(
   state: GameState,
@@ -42,6 +110,7 @@ export function updateState(
   const { myTank } = state;
 
   const explodedBullets: Set<BulletState> = new Set();
+  const removedTerrainNotes: Set<TerrainNode> = new Set();
   for (let bullet of state.bullets) {
     const dx =
       bullet.direction === "left"
@@ -66,9 +135,24 @@ export function updateState(
     ) {
       explodedBullets.add(bullet);
     }
+
+    const collidingNode = getCollidingNode(
+      bullet.x,
+      bullet.y,
+      state.terrain,
+      settings
+    );
+    console.log("found colliding node", collidingNode);
+    if (collidingNode !== undefined) {
+      explodedBullets.add(bullet);
+      removedTerrainNotes.add(collidingNode);
+    }
   }
 
-  state.bullets = state.bullets.filter((b) => explodedBullets.has(b));
+  state.bullets = state.bullets.filter((b) => !explodedBullets.has(b));
+  state.terrain.nodes = state.terrain.nodes.filter(
+    (n) => !removedTerrainNotes.has(n)
+  );
 
   if (
     controls.has("right") &&

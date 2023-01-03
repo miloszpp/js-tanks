@@ -1,6 +1,6 @@
 import { Settings } from "./settings";
 import { drawSprite, getBrickKey, getPlayerTankCoordinateKey } from "./sprites";
-import { BulletState, GameState, TankState } from "./state";
+import { BulletState, GameState, TankState, TerrainState } from "./state";
 
 function drawTank(
   ctx: CanvasRenderingContext2D,
@@ -18,25 +18,20 @@ function drawTank(
   ctx.closePath();
 }
 
-function drawTerrain(ctx: CanvasRenderingContext2D, settings: Settings) {
-  const { grid } = settings;
+function drawTerrain(
+  ctx: CanvasRenderingContext2D,
+  state: TerrainState,
+  settings: Settings
+) {
   ctx.beginPath();
-  for (let row = 0; row < grid.length; row++) {
-    for (let col = 0; col < grid.length; col++) {
-      if (grid[row][col] === "b") {
-        for (let i = 0; i < 4; i++) {
-          for (let j = 0; j < 4; j++) {
-            drawSprite(
-              ctx,
-              getBrickKey((((i + j) % 2) + 1) as 1 | 2),
-              col * settings.terrainSize + (i * settings.terrainSize) / 4,
-              row * settings.terrainSize + (j * settings.terrainSize) / 4,
-              settings.terrainSize / 4 + 1
-            );
-          }
-        }
-      }
-    }
+  for (const node of state.nodes) {
+    drawSprite(
+      ctx,
+      getBrickKey((((node.row + node.col) % 2) + 1) as 1 | 2),
+      node.x,
+      node.y,
+      settings.terrainSize / 4 + 1
+    );
   }
   ctx.closePath();
 }
@@ -68,7 +63,7 @@ export function draw(
   ctx.clearRect(0, 0, settings.canvasSize, settings.canvasSize);
 
   drawTank(ctx, state.myTank, settings);
-  drawTerrain(ctx, settings);
+  drawTerrain(ctx, state.terrain, settings);
   drawBullets(ctx, state.bullets, settings);
 
   if (shouldContinue()) {

@@ -20,7 +20,7 @@ function main() {
   const settings = DEFAULT_SETTINGS;
   const controls = setupControls();
 
-  const state = getInitialState();
+  const state = getInitialState(settings);
 
   let shouldContinue = true;
   let updateStateInterval: number;
