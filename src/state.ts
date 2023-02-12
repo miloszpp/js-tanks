@@ -78,27 +78,39 @@ export const getInitialState = (settings: Settings): GameState => ({
   },
 });
 
-const isContainedByRect = (
-  x: number,
-  y: number,
-  rectX: number,
-  rectY: number,
-  rectWidth: number,
-  rectHeight: number
-) =>
-  x >= rectX && x <= rectX + rectWidth && y >= rectY && y <= rectY + rectHeight;
+type Rect = { x: number; y: number; width: number; height: number };
+
+const isPointContainedByRect = (x: number, y: number, rect: Rect) =>
+  x >= rect.x &&
+  x <= rect.x + rect.width &&
+  y >= rect.y &&
+  y <= rect.y + rect.height;
+
+const doRectsIntersect = (r1: Rect, r2: Rect) =>
+  isPointContainedByRect(r1.x, r1.y, r2) ||
+  isPointContainedByRect(r1.x + r1.width, r1.y, r2) ||
+  isPointContainedByRect(r1.y, r1.y + r1.height, r2) ||
+  isPointContainedByRect(r1.x + r1.width, r1.y + r1.height, r2);
 
 function getCollidingNode(
-  x: number,
-  y: number,
+  r: Rect,
   terrain: TerrainState,
   { terrainSize }: Settings
 ) {
   for (const node of terrain.nodes) {
-    if (isContainedByRect(x, y, node.x, node.y, terrainSize, terrainSize)) {
+    if (
+      doRectsIntersect(r, {
+        x: node.x,
+        y: node.y,
+        width: terrainSize / 4,
+        height: terrainSize / 4,
+      })
+    ) {
+      console.log("node, r", node, r);
       return node;
     }
   }
+  return undefined;
 }
 
 export function updateState(
@@ -131,14 +143,18 @@ export function updateState(
       bullet.x < 0 ||
       bullet.y < 0 ||
       bullet.x > settings.canvasSize ||
-      bullet.y < settings.canvasSize
+      bullet.y > settings.canvasSize
     ) {
       explodedBullets.add(bullet);
     }
 
     const collidingNode = getCollidingNode(
-      bullet.x,
-      bullet.y,
+      {
+        x: bullet.x,
+        y: bullet.y,
+        width: settings.bulletSize,
+        height: settings.bulletSize,
+      },
       state.terrain,
       settings
     );
