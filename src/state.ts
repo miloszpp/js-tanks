@@ -99,6 +99,37 @@ export function getCollidingNode(
   return undefined;
 }
 
+const moveTank = (state: TankState, direction: Direction): TankState => {
+  switch (direction) {
+    case "down":
+      return { ...state, y: state.y + 1 };
+    case "up":
+      return { ...state, y: state.y - 1 };
+    case "left":
+      return { ...state, x: state.x - 1 };
+    case "right":
+      return { ...state, x: state.x + 1 };
+  }
+};
+
+const getTankRect = (state: TankState, settings: Settings): Rect => ({
+  x: state.x,
+  y: state.y,
+  width: settings.tankSize,
+  height: settings.tankSize,
+});
+
+const willTankCollideAfterMove = (
+  state: GameState,
+  direction: Direction,
+  settings: Settings
+): boolean =>
+  getCollidingNode(
+    getTankRect(moveTank(state.myTank, direction), settings),
+    state.terrain,
+    settings
+  ) !== undefined;
+
 export function updateState(
   state: GameState,
   controls: Controls,
@@ -157,22 +188,32 @@ export function updateState(
 
   if (
     controls.has("right") &&
-    myTank.x <= settings.canvasSize - settings.tankSize
+    myTank.x <= settings.canvasSize - settings.tankSize &&
+    !willTankCollideAfterMove(state, "right", settings)
   ) {
     myTank.x += 1;
     myTank.direction = "right";
     myTank.frame = myTank.frame === 1 ? 2 : 1;
-  } else if (controls.has("left") && myTank.x >= 0) {
+  } else if (
+    controls.has("left") &&
+    myTank.x >= 0 &&
+    !willTankCollideAfterMove(state, "left", settings)
+  ) {
     myTank.x -= 1;
     myTank.direction = "left";
     myTank.frame = myTank.frame === 1 ? 2 : 1;
-  } else if (controls.has("up") && myTank.y >= 0) {
+  } else if (
+    controls.has("up") &&
+    myTank.y >= 0 &&
+    !willTankCollideAfterMove(state, "up", settings)
+  ) {
     myTank.y -= 1;
     myTank.direction = "up";
     myTank.frame = myTank.frame === 1 ? 2 : 1;
   } else if (
     controls.has("down") &&
-    myTank.y <= settings.canvasSize - settings.tankSize
+    myTank.y <= settings.canvasSize - settings.tankSize &&
+    !willTankCollideAfterMove(state, "down", settings)
   ) {
     myTank.y += 1;
     myTank.direction = "down";
