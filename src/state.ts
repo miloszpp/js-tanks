@@ -93,22 +93,6 @@ export function getCollidingNode(
         height: terrainSize / 4,
       })
     ) {
-      console.log(
-        "doRectsIntersect(node, r) === true",
-        {
-          x: node.x,
-          y: node.y,
-          width: terrainSize / 4,
-          height: terrainSize / 4,
-        },
-        r,
-        doRectsIntersect(r, {
-          x: node.x,
-          y: node.y,
-          width: terrainSize / 4,
-          height: terrainSize / 4,
-        })
-      );
       return node;
     }
   }
@@ -160,12 +144,6 @@ export function updateState(
       state.terrain,
       settings
     );
-    console.log("found colliding node", collidingNode, {
-      x: bullet.x,
-      y: bullet.y,
-      width: settings.bulletSize,
-      height: settings.bulletSize,
-    });
     if (collidingNode !== undefined) {
       explodedBullets.add(bullet);
       removedTerrainNotes.add(collidingNode);
