@@ -30,7 +30,7 @@ function main() {
 
   draw(ctx, state, settings, () => shouldContinue);
 
-  updateStateInterval = setInterval(
+  updateStateInterval = window.setInterval(
     () =>
       updateState(state, controls, settings, () => {
         shouldContinue = false;

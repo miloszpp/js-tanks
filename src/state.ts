@@ -1,4 +1,5 @@
 import { Controls } from "./controls";
+import { Rect, doRectsIntersect } from "./math.utils";
 import { Settings } from "./settings";
 
 export type Direction = "up" | "right" | "down" | "left";
@@ -78,21 +79,7 @@ export const getInitialState = (settings: Settings): GameState => ({
   },
 });
 
-type Rect = { x: number; y: number; width: number; height: number };
-
-const isPointContainedByRect = (x: number, y: number, rect: Rect) =>
-  x >= rect.x &&
-  x <= rect.x + rect.width &&
-  y >= rect.y &&
-  y <= rect.y + rect.height;
-
-const doRectsIntersect = (r1: Rect, r2: Rect) =>
-  isPointContainedByRect(r1.x, r1.y, r2) ||
-  isPointContainedByRect(r1.x + r1.width, r1.y, r2) ||
-  isPointContainedByRect(r1.y, r1.y + r1.height, r2) ||
-  isPointContainedByRect(r1.x + r1.width, r1.y + r1.height, r2);
-
-function getCollidingNode(
+export function getCollidingNode(
   r: Rect,
   terrain: TerrainState,
   { terrainSize }: Settings
@@ -106,7 +93,22 @@ function getCollidingNode(
         height: terrainSize / 4,
       })
     ) {
-      console.log("node, r", node, r);
+      console.log(
+        "doRectsIntersect(node, r) === true",
+        {
+          x: node.x,
+          y: node.y,
+          width: terrainSize / 4,
+          height: terrainSize / 4,
+        },
+        r,
+        doRectsIntersect(r, {
+          x: node.x,
+          y: node.y,
+          width: terrainSize / 4,
+          height: terrainSize / 4,
+        })
+      );
       return node;
     }
   }
@@ -158,7 +160,12 @@ export function updateState(
       state.terrain,
       settings
     );
-    console.log("found colliding node", collidingNode);
+    console.log("found colliding node", collidingNode, {
+      x: bullet.x,
+      y: bullet.y,
+      width: settings.bulletSize,
+      height: settings.bulletSize,
+    });
     if (collidingNode !== undefined) {
       explodedBullets.add(bullet);
       removedTerrainNotes.add(collidingNode);
