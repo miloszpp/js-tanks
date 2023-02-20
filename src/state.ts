@@ -186,36 +186,34 @@ export function updateState(
     (n) => !removedTerrainNotes.has(n)
   );
 
-  if (
-    controls.has("right") &&
-    myTank.x <= settings.canvasSize - settings.tankSize &&
-    !willTankCollideAfterMove(state, "right", settings)
-  ) {
-    myTank.x += 1;
+  if (controls.has("right")) {
+    if (
+      !willTankCollideAfterMove(state, "right", settings) &&
+      myTank.x < settings.canvasSize - settings.tankSize
+    ) {
+      myTank.x += 1;
+    }
     myTank.direction = "right";
     myTank.frame = myTank.frame === 1 ? 2 : 1;
-  } else if (
-    controls.has("left") &&
-    myTank.x >= 0 &&
-    !willTankCollideAfterMove(state, "left", settings)
-  ) {
-    myTank.x -= 1;
+  } else if (controls.has("left")) {
+    if (!willTankCollideAfterMove(state, "left", settings) && myTank.x > 0) {
+      myTank.x -= 1;
+    }
     myTank.direction = "left";
     myTank.frame = myTank.frame === 1 ? 2 : 1;
-  } else if (
-    controls.has("up") &&
-    myTank.y >= 0 &&
-    !willTankCollideAfterMove(state, "up", settings)
-  ) {
-    myTank.y -= 1;
+  } else if (controls.has("up")) {
+    if (!willTankCollideAfterMove(state, "up", settings) && myTank.y > 0) {
+      myTank.y -= 1;
+    }
     myTank.direction = "up";
     myTank.frame = myTank.frame === 1 ? 2 : 1;
-  } else if (
-    controls.has("down") &&
-    myTank.y <= settings.canvasSize - settings.tankSize &&
-    !willTankCollideAfterMove(state, "down", settings)
-  ) {
-    myTank.y += 1;
+  } else if (controls.has("down")) {
+    if (
+      !willTankCollideAfterMove(state, "down", settings) &&
+      myTank.y < settings.canvasSize - settings.tankSize
+    ) {
+      myTank.y += 1;
+    }
     myTank.direction = "down";
     myTank.frame = myTank.frame === 1 ? 2 : 1;
   }
