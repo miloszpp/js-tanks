@@ -1,3 +1,4 @@
-- bullets and wall destruction
-- sparse storage of the grid
-- wall colision
+- bug with wall collision
+- transition to functional style
+- AI enemy
+- multiplayer

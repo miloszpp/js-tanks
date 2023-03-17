@@ -1,6 +1,9 @@
 import { Controls } from "./controls";
 import { Rect, doRectsIntersect } from "./math.utils";
 import { Settings } from "./settings";
+import { moveBullet, shouldBulletExplode } from "./state/bullet";
+
+import * as R from "ramda";
 
 export type Direction = "up" | "right" | "down" | "left";
 
@@ -122,114 +125,138 @@ const getTankRect = (state: TankState, settings: Settings): Rect => ({
 });
 
 const willTankCollideAfterMove = (
-  state: GameState,
   direction: Direction,
-  settings: Settings
+  settings: Settings,
+  terrain: TerrainState,
+  myTank: TankState
 ): boolean =>
   getCollidingNode(
-    getTankRect(moveTank(state.myTank, direction), settings),
-    state.terrain,
+    getTankRect(moveTank(myTank, direction), settings),
+    terrain,
     settings
   ) !== undefined;
 
-export function updateState(
+const nextFrame = (frame: 1 | 2) => (frame === 1 ? 2 : 1);
+
+const maybeMoveTank =
+  (controls: Controls, settings: Settings, terrain: TerrainState) =>
+  (myTank: TankState): TankState => {
+    if (controls.has("right")) {
+      const canMove =
+        !willTankCollideAfterMove("right", settings, terrain, myTank) &&
+        myTank.x < settings.canvasSize - settings.tankSize;
+      return R.evolve(
+        {
+          x: canMove ? R.inc : R.identity,
+          direction: R.always("right" as const),
+          frame: nextFrame,
+        },
+        myTank
+      );
+    } else if (controls.has("left")) {
+      const canMove =
+        !willTankCollideAfterMove("left", settings, terrain, myTank) &&
+        myTank.x > 0;
+      return R.evolve(
+        {
+          x: canMove ? R.dec : R.identity,
+          direction: R.always("left" as const),
+          frame: nextFrame,
+        },
+        myTank
+      );
+    } else if (controls.has("up")) {
+      const canMove =
+        !willTankCollideAfterMove("up", settings, terrain, myTank) &&
+        myTank.y > 0;
+      return R.evolve(
+        {
+          y: canMove ? R.dec : R.identity,
+          direction: R.always("up" as const),
+          frame: nextFrame,
+        },
+        myTank
+      );
+    } else if (controls.has("down")) {
+      const canMove =
+        !willTankCollideAfterMove("down", settings, terrain, myTank) &&
+        myTank.y < settings.canvasSize - settings.tankSize;
+      return R.evolve(
+        {
+          y: canMove ? R.inc : R.identity,
+          direction: R.always("down" as const),
+          frame: nextFrame,
+        },
+        myTank
+      );
+    }
+    return myTank;
+  };
+
+export const updateState = (
   state: GameState,
   controls: Controls,
   settings: Settings,
+  getNow: () => number,
   onGameOver: () => void
-) {
+) => {
   const { myTank } = state;
 
-  const explodedBullets: Set<BulletState> = new Set();
-  const removedTerrainNotes: Set<TerrainNode> = new Set();
-  for (let bullet of state.bullets) {
-    const dx =
-      bullet.direction === "left"
-        ? -settings.bulletSpeed
-        : bullet.direction === "right"
-        ? settings.bulletSpeed
-        : 0;
-    const dy =
-      bullet.direction === "up"
-        ? -settings.bulletSpeed
-        : bullet.direction === "down"
-        ? settings.bulletSpeed
-        : 0;
-    bullet.x += dx;
-    bullet.y += dy;
+  const movedBullets = R.map(moveBullet(settings))(state.bullets);
 
-    if (
-      bullet.x < 0 ||
-      bullet.y < 0 ||
-      bullet.x > settings.canvasSize ||
-      bullet.y > settings.canvasSize
-    ) {
-      explodedBullets.add(bullet);
-    }
+  const explodedBullets = R.filter(
+    R.pipe(
+      shouldBulletExplode(state.terrain, settings),
+      R.prop("shouldExplode")
+    ),
+    movedBullets
+  );
+  const removedTerrainNodes = R.pipe(
+    R.map(
+      R.pipe(
+        shouldBulletExplode(state.terrain, settings),
+        R.prop("collidingNode")
+      )
+    ),
+    R.filter(R.pipe(R.isNil, R.not))
+  )(movedBullets);
 
-    const collidingNode = getCollidingNode(
-      {
-        x: bullet.x,
-        y: bullet.y,
-        width: settings.bulletSize,
-        height: settings.bulletSize,
-      },
-      state.terrain,
-      settings
-    );
-    if (collidingNode !== undefined) {
-      explodedBullets.add(bullet);
-      removedTerrainNotes.add(collidingNode);
-    }
-  }
-
-  state.bullets = state.bullets.filter((b) => !explodedBullets.has(b));
-  state.terrain.nodes = state.terrain.nodes.filter(
-    (n) => !removedTerrainNotes.has(n)
+  const updatedBullets = R.difference(movedBullets, explodedBullets);
+  const updatedTerrain = R.assoc(
+    "terrain",
+    R.difference(state.terrain.nodes, removedTerrainNodes),
+    state.terrain
   );
 
-  if (controls.has("right")) {
-    if (
-      !willTankCollideAfterMove(state, "right", settings) &&
-      myTank.x < settings.canvasSize - settings.tankSize
-    ) {
-      myTank.x += 1;
-    }
-    myTank.direction = "right";
-    myTank.frame = myTank.frame === 1 ? 2 : 1;
-  } else if (controls.has("left")) {
-    if (!willTankCollideAfterMove(state, "left", settings) && myTank.x > 0) {
-      myTank.x -= 1;
-    }
-    myTank.direction = "left";
-    myTank.frame = myTank.frame === 1 ? 2 : 1;
-  } else if (controls.has("up")) {
-    if (!willTankCollideAfterMove(state, "up", settings) && myTank.y > 0) {
-      myTank.y -= 1;
-    }
-    myTank.direction = "up";
-    myTank.frame = myTank.frame === 1 ? 2 : 1;
-  } else if (controls.has("down")) {
-    if (
-      !willTankCollideAfterMove(state, "down", settings) &&
-      myTank.y < settings.canvasSize - settings.tankSize
-    ) {
-      myTank.y += 1;
-    }
-    myTank.direction = "down";
-    myTank.frame = myTank.frame === 1 ? 2 : 1;
-  }
+  const updatedTank = maybeMoveTank(
+    controls,
+    settings,
+    state.terrain
+  )(state.myTank);
 
-  if (
+  const now = getNow();
+  const isMyTankShooting =
     controls.has("space") &&
-    myTank.lastShotTimestamp + settings.shotThrottleTime < Date.now()
-  ) {
-    state.bullets.push({
-      x: myTank.x + settings.tankSize / 2 - settings.bulletSize / 2,
-      y: myTank.y + settings.tankSize / 2 - settings.bulletSize / 2,
-      direction: myTank.direction,
-    });
-    myTank.lastShotTimestamp = Date.now();
-    controls.delete("space");
-  }
-}
+    myTank.lastShotTimestamp + settings.shotThrottleTime < now;
+  const updatedBullets2 = isMyTankShooting
+    ? R.append(
+        {
+          x: myTank.x + settings.tankSize / 2 - settings.bulletSize / 2,
+          y: myTank.y + settings.tankSize / 2 - settings.bulletSize / 2,
+          direction: myTank.direction,
+        },
+        updatedBullets
+      )
+    : updatedBullets;
+
+  const updatedTank2 = isMyTankShooting
+    ? R.assoc("lastShotTimestamp", now, updatedTank)
+    : updatedTank;
+
+  return {
+    ...state,
+    bullets: updatedBullets2,
+    terrain: updatedTerrain,
+    myTank: updatedTank2,
+  };
+};
