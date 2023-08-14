@@ -32,9 +32,15 @@ function main() {
 
   updateStateInterval = window.setInterval(
     () =>
-      updateState(state, controls, settings, () => {
+      updateState(state, controls, settings, (isWin) => {
         shouldContinue = false;
         clearInterval(updateStateInterval);
+
+        if (isWin) {
+          alert("You have won!");
+        } else {
+          alert("Game over!");
+        }
       }),
     10
   );

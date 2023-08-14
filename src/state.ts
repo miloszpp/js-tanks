@@ -1,6 +1,13 @@
+import { updateAllEnemies } from "./ai";
 import { Controls } from "./controls";
-import { Rect, doRectsIntersect } from "./math.utils";
 import { FieldType, Settings } from "./settings";
+import {
+  doesBulletHitTank,
+  getBulletRect,
+  getCollidingNode,
+  moveTank,
+  shoot,
+} from "./state.utils";
 
 export type Direction = "up" | "right" | "down" | "left";
 
@@ -16,6 +23,7 @@ export interface BulletState {
   x: number;
   y: number;
   direction: Direction;
+  author: "player" | "enemy";
 }
 
 export type TerrainNode = {
@@ -84,6 +92,81 @@ const findCoordsInGrid = (
   return results;
 };
 
+function moveBullet(bullet: BulletState, settings: Settings) {
+  const dx =
+    bullet.direction === "left"
+      ? -settings.bulletSpeed
+      : bullet.direction === "right"
+      ? settings.bulletSpeed
+      : 0;
+  const dy =
+    bullet.direction === "up"
+      ? -settings.bulletSpeed
+      : bullet.direction === "down"
+      ? settings.bulletSpeed
+      : 0;
+  bullet.x += dx;
+  bullet.y += dy;
+}
+
+function moveAndExplodeBullets(
+  state: GameState,
+  settings: Settings,
+  onGameOver: (isWin: boolean) => void
+) {
+  const explodedBullets: Set<BulletState> = new Set();
+  const removedTerrainNotes: Set<TerrainNode> = new Set();
+  const destroyedEnemies: Set<TankState> = new Set();
+
+  for (let bullet of state.bullets) {
+    moveBullet(bullet, settings);
+
+    if (
+      bullet.x < 0 ||
+      bullet.y < 0 ||
+      bullet.x > settings.canvasSize ||
+      bullet.y > settings.canvasSize
+    ) {
+      explodedBullets.add(bullet);
+    }
+
+    const collidingNode = getCollidingNode(
+      getBulletRect(bullet, settings),
+      state.terrain,
+      settings
+    );
+    if (collidingNode !== undefined) {
+      explodedBullets.add(bullet);
+      if (collidingNode.type === "brick") {
+        removedTerrainNotes.add(collidingNode);
+      }
+    }
+
+    if (
+      bullet.author === "enemy" &&
+      doesBulletHitTank(state.myTank, bullet, settings)
+    ) {
+      onGameOver(false);
+    }
+
+    if (bullet.author === "player") {
+      const hitTank = state.enemyTanks.find((tank) =>
+        doesBulletHitTank(tank, bullet, settings)
+      );
+      if (hitTank !== undefined) {
+        destroyedEnemies.add(hitTank);
+        explodedBullets.add(bullet);
+      }
+    }
+  }
+
+  state.bullets = state.bullets.filter((b) => !explodedBullets.has(b));
+  state.terrain.nodes = state.terrain.nodes.filter(
+    (n) => !removedTerrainNotes.has(n)
+  );
+  state.enemyTanks = state.enemyTanks.filter((t) => !destroyedEnemies.has(t));
+}
+
 export const getInitialState = (settings: Settings): GameState => {
   const nodes = settings.grid
     .flatMap((row, rowIdx) =>
@@ -129,157 +212,30 @@ export const getInitialState = (settings: Settings): GameState => {
   };
 };
 
-export function getCollidingNode(
-  r: Rect,
-  terrain: TerrainState,
-  { terrainSize }: Settings
-) {
-  for (const node of terrain.nodes) {
-    if (
-      doRectsIntersect(r, {
-        x: node.x,
-        y: node.y,
-        width: terrainSize / 4,
-        height: terrainSize / 4,
-      })
-    ) {
-      return node;
-    }
-  }
-  return undefined;
-}
-
-const moveTank = (state: TankState, direction: Direction): TankState => {
-  switch (direction) {
-    case "down":
-      return { ...state, y: state.y + 1 };
-    case "up":
-      return { ...state, y: state.y - 1 };
-    case "left":
-      return { ...state, x: state.x - 1 };
-    case "right":
-      return { ...state, x: state.x + 1 };
-  }
-};
-
-const getTankRect = (state: TankState, settings: Settings): Rect => ({
-  x: state.x,
-  y: state.y,
-  width: settings.tankSize,
-  height: settings.tankSize,
-});
-
-const willTankCollideAfterMove = (
-  state: GameState,
-  direction: Direction,
-  settings: Settings
-): boolean =>
-  getCollidingNode(
-    getTankRect(moveTank(state.myTank, direction), settings),
-    state.terrain,
-    settings
-  ) !== undefined;
-
 export function updateState(
   state: GameState,
   controls: Controls,
   settings: Settings,
-  onGameOver: () => void
+  onGameOver: (isWin: boolean) => void
 ) {
   const { myTank } = state;
 
-  const explodedBullets: Set<BulletState> = new Set();
-  const removedTerrainNotes: Set<TerrainNode> = new Set();
-  for (let bullet of state.bullets) {
-    const dx =
-      bullet.direction === "left"
-        ? -settings.bulletSpeed
-        : bullet.direction === "right"
-        ? settings.bulletSpeed
-        : 0;
-    const dy =
-      bullet.direction === "up"
-        ? -settings.bulletSpeed
-        : bullet.direction === "down"
-        ? settings.bulletSpeed
-        : 0;
-    bullet.x += dx;
-    bullet.y += dy;
-
-    if (
-      bullet.x < 0 ||
-      bullet.y < 0 ||
-      bullet.x > settings.canvasSize ||
-      bullet.y > settings.canvasSize
-    ) {
-      explodedBullets.add(bullet);
-    }
-
-    const collidingNode = getCollidingNode(
-      {
-        x: bullet.x,
-        y: bullet.y,
-        width: settings.bulletSize,
-        height: settings.bulletSize,
-      },
-      state.terrain,
-      settings
-    );
-    if (collidingNode !== undefined) {
-      explodedBullets.add(bullet);
-      if (collidingNode.type === "brick") {
-        removedTerrainNotes.add(collidingNode);
-      }
-    }
-  }
-
-  state.bullets = state.bullets.filter((b) => !explodedBullets.has(b));
-  state.terrain.nodes = state.terrain.nodes.filter(
-    (n) => !removedTerrainNotes.has(n)
-  );
+  moveAndExplodeBullets(state, settings, onGameOver);
 
   if (controls.has("right")) {
-    if (
-      !willTankCollideAfterMove(state, "right", settings) &&
-      myTank.x < settings.canvasSize - settings.tankSize
-    ) {
-      myTank.x += 1;
-    }
-    myTank.direction = "right";
-    myTank.frame = myTank.frame === 1 ? 2 : 1;
+    moveTank(myTank, "right", state, settings);
   } else if (controls.has("left")) {
-    if (!willTankCollideAfterMove(state, "left", settings) && myTank.x > 0) {
-      myTank.x -= 1;
-    }
-    myTank.direction = "left";
-    myTank.frame = myTank.frame === 1 ? 2 : 1;
+    moveTank(myTank, "left", state, settings);
   } else if (controls.has("up")) {
-    if (!willTankCollideAfterMove(state, "up", settings) && myTank.y > 0) {
-      myTank.y -= 1;
-    }
-    myTank.direction = "up";
-    myTank.frame = myTank.frame === 1 ? 2 : 1;
+    moveTank(myTank, "up", state, settings);
   } else if (controls.has("down")) {
-    if (
-      !willTankCollideAfterMove(state, "down", settings) &&
-      myTank.y < settings.canvasSize - settings.tankSize
-    ) {
-      myTank.y += 1;
-    }
-    myTank.direction = "down";
-    myTank.frame = myTank.frame === 1 ? 2 : 1;
+    moveTank(myTank, "down", state, settings);
   }
 
-  if (
-    controls.has("space") &&
-    myTank.lastShotTimestamp + settings.shotThrottleTime < Date.now()
-  ) {
-    state.bullets.push({
-      x: myTank.x + settings.tankSize / 2 - settings.bulletSize / 2,
-      y: myTank.y + settings.tankSize / 2 - settings.bulletSize / 2,
-      direction: myTank.direction,
-    });
-    myTank.lastShotTimestamp = Date.now();
+  if (controls.has("space")) {
+    shoot(myTank, "player", state, settings);
     controls.delete("space");
   }
+
+  updateAllEnemies(state, settings);
 }

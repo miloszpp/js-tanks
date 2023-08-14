@@ -24,7 +24,7 @@ export const DEFAULT_SETTINGS = {
     "eeeeebbbeeeee",
     "xeeeebebeeeex",
   ]),
-  bulletSpeed: 10,
+  bulletSpeed: 5,
   bulletSize: 10,
 
   shotThrottleTime: 500,
