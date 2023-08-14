@@ -1,6 +1,12 @@
 import { Settings } from "./settings";
 import { drawSprite, getBrickKey, getPlayerTankCoordinateKey } from "./sprites";
-import { BulletState, GameState, TankState, TerrainState } from "./state";
+import {
+  BulletState,
+  GameState,
+  TankState,
+  TerrainNode,
+  TerrainState,
+} from "./state";
 
 function drawTank(
   ctx: CanvasRenderingContext2D,
@@ -18,6 +24,15 @@ function drawTank(
   ctx.closePath();
 }
 
+function getTerrainSpriteKey(node: TerrainNode) {
+  switch (node.type) {
+    case "brick":
+      return getBrickKey((((node.row + node.col) % 2) + 1) as 1 | 2);
+    case "concrete":
+      return "terrain.steel";
+  }
+}
+
 function drawTerrain(
   ctx: CanvasRenderingContext2D,
   state: TerrainState,
@@ -27,7 +42,7 @@ function drawTerrain(
   for (const node of state.nodes) {
     drawSprite(
       ctx,
-      getBrickKey((((node.row + node.col) % 2) + 1) as 1 | 2),
+      getTerrainSpriteKey(node),
       node.x,
       node.y,
       settings.terrainSize / 4 + 1

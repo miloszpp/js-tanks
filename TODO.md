@@ -1,3 +1,7 @@
-- bullets and wall destruction
+- steel
+- enemy (AI)
+- win/loose
+- multiplayer
 - sparse storage of the grid
-- wall colision
+- explosions
+- powerups

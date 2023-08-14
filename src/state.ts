@@ -49,13 +49,24 @@ const generateNodesFromCoords = (
       nodes.push({
         row: 4 * row + i,
         col: 4 * col + j,
-        x: ((4 * row + i) * terrainSize) / 4,
-        y: ((4 * col + j) * terrainSize) / 4,
+        x: ((4 * col + i) * terrainSize) / 4,
+        y: ((4 * row + j) * terrainSize) / 4,
         type,
       });
     }
   }
   return nodes;
+};
+
+const getTerrainTypeFromSymbol = (symbol: string): TerrainNode["type"] => {
+  switch (symbol) {
+    case "b":
+      return "brick";
+    case "s":
+      return "concrete";
+    default:
+      throw Error(`did not recognize symbol: ${symbol}`);
+  }
 };
 
 export const getInitialState = (settings: Settings): GameState => ({
@@ -74,7 +85,12 @@ export const getInitialState = (settings: Settings): GameState => ({
         row.flatMap((f, colIdx) =>
           f === "e"
             ? null
-            : generateNodesFromCoords(rowIdx, colIdx, "brick", settings)
+            : generateNodesFromCoords(
+                rowIdx,
+                colIdx,
+                getTerrainTypeFromSymbol(f),
+                settings
+              )
         )
       )
       .filter((f): f is TerrainNode => f !== null),
@@ -179,7 +195,9 @@ export function updateState(
     );
     if (collidingNode !== undefined) {
       explodedBullets.add(bullet);
-      removedTerrainNotes.add(collidingNode);
+      if (collidingNode.type === "brick") {
+        removedTerrainNotes.add(collidingNode);
+      }
     }
   }
 
