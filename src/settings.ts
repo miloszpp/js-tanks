@@ -27,6 +27,8 @@ export const DEFAULT_SETTINGS = {
   bulletSpeed: 10,
   bulletSize: 10,
 
+  shotThrottleTime: 500,
+
   get tankSize() {
     return this.canvasSize / this.grid.length;
   },

@@ -9,6 +9,7 @@ export interface TankState {
   y: number;
   direction: Direction;
   frame: 1 | 2;
+  lastShotTimestamp: number;
 }
 
 export interface BulletState {
@@ -63,6 +64,7 @@ export const getInitialState = (settings: Settings): GameState => ({
     y: 0,
     direction: "up",
     frame: 1,
+    lastShotTimestamp: 0,
   },
   enemyTanks: [],
   bullets: [],
@@ -218,12 +220,16 @@ export function updateState(
     myTank.frame = myTank.frame === 1 ? 2 : 1;
   }
 
-  if (controls.has("space")) {
+  if (
+    controls.has("space") &&
+    myTank.lastShotTimestamp + settings.shotThrottleTime < Date.now()
+  ) {
     state.bullets.push({
       x: myTank.x + settings.tankSize / 2 - settings.bulletSize / 2,
       y: myTank.y + settings.tankSize / 2 - settings.bulletSize / 2,
       direction: myTank.direction,
     });
+    myTank.lastShotTimestamp = Date.now();
     controls.delete("space");
   }
 }
