@@ -7,7 +7,7 @@ const parseGridStrings = (lines: string[]) => {
 };
 
 export const DEFAULT_SETTINGS = {
-  canvasSize: 600,
+  canvasSize: 598,
   // change to sparse representation and compare FPS
   grid: parseGridStrings([
     "eeeebeeebeeee",
