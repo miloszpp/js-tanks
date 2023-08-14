@@ -1,6 +1,6 @@
 import { Controls } from "./controls";
 import { Rect, doRectsIntersect } from "./math.utils";
-import { Settings } from "./settings";
+import { FieldType, Settings } from "./settings";
 
 export type Direction = "up" | "right" | "down" | "left";
 
@@ -69,33 +69,65 @@ const getTerrainTypeFromSymbol = (symbol: string): TerrainNode["type"] => {
   }
 };
 
-export const getInitialState = (settings: Settings): GameState => ({
-  myTank: {
-    x: 0,
-    y: 0,
-    direction: "up",
-    frame: 1,
-    lastShotTimestamp: 0,
-  },
-  enemyTanks: [],
-  bullets: [],
-  terrain: {
-    nodes: settings.grid
-      .flatMap((row, rowIdx) =>
-        row.flatMap((f, colIdx) =>
-          f === "e"
-            ? null
-            : generateNodesFromCoords(
-                rowIdx,
-                colIdx,
-                getTerrainTypeFromSymbol(f),
-                settings
-              )
-        )
+const findCoordsInGrid = (
+  searchTerm: FieldType,
+  grid: FieldType[][]
+): [number, number][] => {
+  const results: [number, number][] = [];
+  for (let i = 0; i < grid.length; i++) {
+    for (let j = 0; j < grid[i].length; j++) {
+      if (grid[i][j] === searchTerm) {
+        results.push([i, j]);
+      }
+    }
+  }
+  return results;
+};
+
+export const getInitialState = (settings: Settings): GameState => {
+  const nodes = settings.grid
+    .flatMap((row, rowIdx) =>
+      row.flatMap((f, colIdx) =>
+        f === "e" || f === "p" || f === "x"
+          ? null
+          : generateNodesFromCoords(
+              rowIdx,
+              colIdx,
+              getTerrainTypeFromSymbol(f),
+              settings
+            )
       )
-      .filter((f): f is TerrainNode => f !== null),
-  },
-});
+    )
+    .filter((f): f is TerrainNode => f !== null);
+
+  const playerCoords = findCoordsInGrid("p", settings.grid).at(0);
+  if (playerCoords === undefined) {
+    throw Error("invalid number of players on the grid");
+  }
+
+  const enemiesCoords = findCoordsInGrid("x", settings.grid);
+
+  return {
+    myTank: {
+      x: playerCoords[1] * settings.terrainSize,
+      y: playerCoords[0] * settings.terrainSize,
+      direction: "up",
+      frame: 1,
+      lastShotTimestamp: 0,
+    },
+    enemyTanks: enemiesCoords.map(([row, col]) => ({
+      x: col * settings.terrainSize,
+      y: row * settings.terrainSize,
+      direction: "down",
+      frame: 1,
+      lastShotTimestamp: 0,
+    })),
+    bullets: [],
+    terrain: {
+      nodes,
+    },
+  };
+};
 
 export function getCollidingNode(
   r: Rect,

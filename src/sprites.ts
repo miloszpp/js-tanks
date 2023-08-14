@@ -18,6 +18,13 @@ export const getPlayerTankCoordinateKey = (
   frame: 1 | 2
 ) => `tank.player.${mode}.${kind}.${orientation}.${frame}` as const;
 
+export const getEnemyTankCoordinateKey = (
+  mode: "default",
+  kind: "a" | "b" | "c" | "d",
+  orientation: "up" | "down" | "left" | "right",
+  frame: 1 | 2
+) => `tank.enemy.${mode}.${kind}.${orientation}.${frame}` as const;
+
 export const getBrickKey = (mode: 1 | 2) => `terrain.brick.${mode}` as const;
 
 const SpriteImage = await getLoadedSpriteImage();

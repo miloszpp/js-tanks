@@ -1,5 +1,10 @@
 import { Settings } from "./settings";
-import { drawSprite, getBrickKey, getPlayerTankCoordinateKey } from "./sprites";
+import {
+  drawSprite,
+  getBrickKey,
+  getEnemyTankCoordinateKey,
+  getPlayerTankCoordinateKey,
+} from "./sprites";
 import {
   BulletState,
   GameState,
@@ -21,6 +26,26 @@ function drawTank(
     tank.frame
   );
   drawSprite(ctx, spriteKey, tank.x, tank.y, settings.tankSize + 1);
+  ctx.closePath();
+}
+
+function drawEnemies(
+  ctx: CanvasRenderingContext2D,
+  tanks: TankState[],
+  settings: Settings
+) {
+  ctx.beginPath();
+  let i = 0;
+  for (let tank of tanks) {
+    const spriteKey = getEnemyTankCoordinateKey(
+      "default",
+      "a",
+      tank.direction,
+      tank.frame
+    );
+    drawSprite(ctx, spriteKey, tank.x, tank.y, settings.tankSize + 1);
+    i++;
+  }
   ctx.closePath();
 }
 
@@ -78,6 +103,7 @@ export function draw(
   ctx.clearRect(0, 0, settings.canvasSize, settings.canvasSize);
 
   drawTank(ctx, state.myTank, settings);
+  drawEnemies(ctx, state.enemyTanks, settings);
   drawTerrain(ctx, state.terrain, settings);
   drawBullets(ctx, state.bullets, settings);
 

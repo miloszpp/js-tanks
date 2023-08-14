@@ -1,6 +1,6 @@
 export type Settings = typeof DEFAULT_SETTINGS;
 
-export type FieldType = "e" | "b" | "s";
+export type FieldType = "e" | "b" | "s" | "p" | "x";
 
 const parseGridStrings = (lines: string[]) => {
   return lines.map((line) => line.split("")) as FieldType[][];
@@ -10,7 +10,7 @@ export const DEFAULT_SETTINGS = {
   canvasSize: 598,
   // change to sparse representation and compare FPS
   grid: parseGridStrings([
-    "eeeebeeebeeee",
+    "peeebeeebeeex",
     "eeeebesebeeee",
     "eeeeeeseeeeee",
     "eeeeeeseeeeee",
@@ -22,7 +22,7 @@ export const DEFAULT_SETTINGS = {
     "eeeeeeseeeeee",
     "eeeeeeseeeeee",
     "eeeeebbbeeeee",
-    "eeeeebebeeeee",
+    "xeeeebebeeeex",
   ]),
   bulletSpeed: 10,
   bulletSize: 10,
